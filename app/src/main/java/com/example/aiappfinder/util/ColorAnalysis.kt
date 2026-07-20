@@ -1,19 +1,20 @@
 package com.example.aiappfinder.util
 
 import android.graphics.Bitmap
-import androidx.palette.graphics.Palette
 
 object ColorAnalysis {
     fun getPrimaryColor(bitmap: Bitmap): String {
-        val palette = Palette.from(bitmap).generate()
-        val dominant = palette.dominantSwatch
-        return dominant?.let {
-            String.format("#%06X", (0xFFFFFF and it.rgb))
-        } ?: "#FFFFFF"
+        // Simple color extraction from center pixels
+        val width = bitmap.width
+        val height = bitmap.height
+        val pixel = bitmap.getPixel(width / 2, height / 2)
+        val r = (pixel shr 16) and 0xFF
+        val g = (pixel shr 8) and 0xFF
+        val b = pixel and 0xFF
+        return String.format("#%02X%02X%02X", r, g, b)
     }
 
     fun getColorName(hex: String): String {
-        // Simplified color naming logic
         return when {
             hex.startsWith("#FF0000") -> "Red"
             hex.startsWith("#00FF00") -> "Green"

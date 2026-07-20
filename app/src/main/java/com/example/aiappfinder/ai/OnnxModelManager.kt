@@ -8,11 +8,13 @@ import ai.onnxruntime.OrtSession
 import java.nio.ByteBuffer
 import java.nio.ByteOrder
 import java.nio.FloatBuffer
+import java.nio.LongBuffer
+import dagger.hilt.android.qualifiers.ApplicationContext
 import javax.inject.Inject
 import javax.inject.Singleton
 
 @Singleton
-class OnnxModelManager @Inject constructor(private val context: Context) {
+class OnnxModelManager @Inject constructor(@ApplicationContext private val context: Context) {
     private val env = OrtEnvironment.getEnvironment()
     private var visualSession: OrtSession? = null
     private var textSession: OrtSession? = null
@@ -51,7 +53,8 @@ class OnnxModelManager @Inject constructor(private val context: Context) {
         // Tokenization logic would go here (Simplified for structure)
         val tokens = tokenize(text)
         val inputName = textSession?.inputNames?.iterator()?.next() ?: return floatArrayOf()
-        val tensor = OnnxTensor.createTensor(env, tokens, longArrayOf(1, tokens.size.toLong()))
+        val shape = longArrayOf(1L, tokens.size.toLong())
+        val tensor = OnnxTensor.createTensor(env, LongBuffer.wrap(tokens), shape)
         
         val output = textSession?.run(mapOf(inputName to tensor))
         val result = output?.get(0)?.value as? Array<FloatArray>
