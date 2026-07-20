@@ -1,0 +1,8 @@
+<resources>
+    <string name="app_name">AI App Finder</string>
+    <string name="search_placeholder">Search by icon description...</string>
+    <string name="no_results">No apps found</string>
+    <string name="indexing_apps">Indexing apps, please wait...</string>
+    <string name="color_filter">Color</string>
+    <string name="shape_filter">Shape</string>
+</resources>

@@ -1,0 +1,8 @@
+<resources>
+    <string name="app_name">باحث التطبيقات الذكي</string>
+    <string name="search_placeholder">ابحث بوصف الأيقونة...</string>
+    <string name="no_results">لم يتم العثور على تطبيقات</string>
+    <string name="indexing_apps">جاري فهرسة التطبيقات، يرجى الانتظار...</string>
+    <string name="color_filter">اللون</string>
+    <string name="shape_filter">الشكل</string>
+</resources>
