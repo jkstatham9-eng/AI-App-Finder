@@ -65,9 +65,9 @@ captures/
 .settings/
 bin/
 
-# Keystore files
-*.jks
-*.keystore
+# Keystore files (keystore.properties is tracked for CI)
+# *.jks
+# *.keystore
 
 # Google Maps API Key
 google-maps-api-key.txt
