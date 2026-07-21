@@ -1,8 +1,10 @@
 package com.example.aiappfinder.data
 
 import com.example.aiappfinder.ai.OnnxModelManager
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.withContext
 import javax.inject.Inject
 import javax.inject.Singleton
 import kotlin.math.sqrt
@@ -14,25 +16,32 @@ class SearchRepository @Inject constructor(
 ) {
     fun getAllApps(): Flow<List<AppEntity>> = appDao.getAllApps()
 
-    suspend fun searchApps(query: String): List<AppEntity> {
+    suspend fun searchApps(query: String): List<AppEntity> = withContext(Dispatchers.Default) {
         val queryEmbedding = modelManager.getTextEmbedding(query)
         val allApps = appDao.getAllAppsSync()
-        
-        return allApps.map { app ->
+
+        val results = allApps.map { app ->
             val similarity = cosineSimilarity(queryEmbedding, app.embedding)
             app to similarity
         }.sortedByDescending { it.second }
-        .map { it.first }
+            .map { it.first }
+
+        // Dispose text model session after search is complete
+        modelManager.disposeAllSessions()
+
+        results
     }
 
-    suspend fun findSimilarApps(targetApp: AppEntity): List<AppEntity> {
+    suspend fun findSimilarApps(targetApp: AppEntity): List<AppEntity> = withContext(Dispatchers.Default) {
         val allApps = appDao.getAllAppsSync()
-        return allApps.filter { it.packageName != targetApp.packageName }
+        val results = allApps.filter { it.packageName != targetApp.packageName }
             .map { app ->
                 val similarity = cosineSimilarity(targetApp.embedding, app.embedding)
                 app to similarity
             }.sortedByDescending { it.second }
             .map { it.first }
+
+        results
     }
 
     private fun cosineSimilarity(vec1: FloatArray, vec2: FloatArray): Float {

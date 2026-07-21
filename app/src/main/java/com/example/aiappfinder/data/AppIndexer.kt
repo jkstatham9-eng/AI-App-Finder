@@ -10,6 +10,7 @@ import android.graphics.drawable.Drawable
 import com.example.aiappfinder.ai.OnnxModelManager
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.withContext
 import java.io.File
 import java.io.FileOutputStream
@@ -25,22 +26,23 @@ class AppIndexer @Inject constructor(
     suspend fun indexInstalledApps() = withContext(Dispatchers.IO) {
         val pm = context.packageManager
         val apps = pm.getInstalledApplications(PackageManager.GET_META_DATA)
-        
+
         for (appInfo in apps) {
             if (appDao.getAppByPackage(appInfo.packageName) != null) continue
-            
+
             val appName = pm.getApplicationLabel(appInfo).toString()
             val icon = pm.getApplicationIcon(appInfo)
             val bitmap = drawableToBitmap(icon)
-            
+
             // Save icon to internal storage
             val iconFile = File(context.filesDir, "${appInfo.packageName}.png")
             FileOutputStream(iconFile).use { out ->
                 bitmap.compress(Bitmap.CompressFormat.PNG, 100, out)
             }
-            
+
+            // Get visual embedding with lazy loading
             val embedding = modelManager.getVisualEmbedding(bitmap)
-            
+
             val primaryHex = com.example.aiappfinder.util.ColorAnalysis.getPrimaryColor(bitmap)
             val entity = AppEntity(
                 packageName = appInfo.packageName,
@@ -56,13 +58,22 @@ class AppIndexer @Inject constructor(
                 isSystemApp = (appInfo.flags and ApplicationInfo.FLAG_SYSTEM) != 0,
                 launchIntent = pm.getLaunchIntentForPackage(appInfo.packageName)?.toUri(0)
             )
-            
+
             appDao.insertApp(entity)
+
+            // Recycle bitmap to free memory after processing each app
+            bitmap.recycle()
+
+            // Brief delay to allow GC to reclaim memory periodically
+            delay(50)
         }
+
+        // Dispose visual model session after indexing is complete
+        modelManager.disposeAllSessions()
     }
 
     private fun drawableToBitmap(drawable: Drawable): Bitmap {
-        if (drawable is BitmapDrawable) return drawable.bitmap
+        if (drawable is BitmapDrawable) return drawable.bitmap.copy(Bitmap.Config.ARGB_8888, false)
         val bitmap = Bitmap.createBitmap(
             drawable.intrinsicWidth.coerceAtLeast(1),
             drawable.intrinsicHeight.coerceAtLeast(1),

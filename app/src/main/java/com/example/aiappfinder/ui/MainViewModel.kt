@@ -6,6 +6,7 @@ import com.example.aiappfinder.data.AppEntity
 import com.example.aiappfinder.data.AppIndexer
 import com.example.aiappfinder.data.SearchRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 import javax.inject.Inject
@@ -22,6 +23,9 @@ class MainViewModel @Inject constructor(
     private val _isIndexing = MutableStateFlow(false)
     val isIndexing = _isIndexing.asStateFlow()
 
+    private val _hasIndexed = MutableStateFlow(false)
+    val hasIndexed = _hasIndexed.asStateFlow()
+
     val apps: StateFlow<List<AppEntity>> = searchQuery
         .debounce(300)
         .flatMapLatest { query ->
@@ -34,7 +38,14 @@ class MainViewModel @Inject constructor(
         .stateIn(viewModelScope, SharingStarted.Lazily, emptyList())
 
     init {
-        startIndexing()
+        // Defer indexing to allow the UI to render first
+        // This prevents OOM during app launch by not loading ONNX models immediately
+        viewModelScope.launch {
+            delay(2000) // Wait 2 seconds for UI to be visible before indexing
+            if (!_hasIndexed.value) {
+                startIndexing()
+            }
+        }
     }
 
     fun onSearchQueryChange(query: String) {
@@ -46,6 +57,7 @@ class MainViewModel @Inject constructor(
             _isIndexing.value = true
             indexer.indexInstalledApps()
             _isIndexing.value = false
+            _hasIndexed.value = true
         }
     }
 }
